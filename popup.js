@@ -572,15 +572,41 @@ class WebMarkdownConverter {
         }
     }
 
+    getCurrentEditorContent() {
+        const outputElement = document.getElementById('markdownOutput');
+        return outputElement ? outputElement.value : this.currentMarkdown;
+    }
+
+    getMarkdownTitle(markdown) {
+        const match = markdown.match(/^\s*#\s+(.+?)\s*$/m);
+        return match ? match[1].trim() : '';
+    }
+
+    sanitizeFilename(filename) {
+        return filename
+            .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 120);
+    }
+
     // 下载Markdown文件
     downloadMarkdown() {
         try {
-            const blob = new Blob([this.currentMarkdown], { type: 'text/markdown;charset=utf-8' });
+            const markdownContent = this.getCurrentEditorContent();
+
+            if (!markdownContent || markdownContent.trim() === '') {
+                throw new Error('没有可下载的Markdown内容');
+            }
+
+            const markdownTitle = this.getMarkdownTitle(markdownContent);
+            const safeTitle = this.sanitizeFilename(markdownTitle) || `webpage-${new Date().getTime()}`;
+            const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = `webpage-${new Date().getTime()}.md`;
+            a.download = `${safeTitle}.md`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
